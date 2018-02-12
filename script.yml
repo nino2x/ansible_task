@@ -1,0 +1,30 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    - dirroot: /opt/run/webphp
+  tasks:
+    - name: Update cache
+      apt: update_cache=yes cache_valid_time=1800
+
+    - name: Install Docker
+      apt: name=docker.io
+
+    - name: Install Supervisor
+      apt: name=supervisor
+
+    - name: Create log directory
+      file: name={{dirroot}}/log state=directory
+
+    - name: Copy Docker image files
+      copy: src=docker/ dest={{dirroot}}/config/
+
+    - name: Copy Supervisor .conf
+      copy: src=supervisor/phpapp.conf dest=/etc/supervisor/conf.d/phpapp.conf
+
+    - name: Build Docker image
+      shell: docker build -t phpapp {{dirroot}}/config/
+
+    - name: Supervisor reread and update
+      become: yes
+      shell: supervisorctl reread && supervisorctl update
